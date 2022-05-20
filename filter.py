@@ -37,7 +37,7 @@ def centerline(B):
     return midpoint_list
 
 #Calculate the line of the graph
-def get_line(img,mid_list):
+def get_line(img,mid_list,fixed_list):
 
     #Put the obtained points into a new binary graph
     new_img=np.zeros((np.shape(img)[0],np.shape(img)[1]),np.uint8)
@@ -81,6 +81,7 @@ def get_line(img,mid_list):
 
     #Remove the repeat lines and return it
     lines=[]
+    lines_index=[]
     for i in range(len(rep_lines)):
         tested=rep_lines.pop()
         A=np.array(tested)
@@ -92,7 +93,12 @@ def get_line(img,mid_list):
                 break
         if flag==0:
             lines.append(tested)
-    return lines
+            for n in range(len(fixed_list)):
+                fixed_point=fixed_list[n]
+                if abs(fixed_point[0]-tested[0]*fixed_point[1]-tested[1])<5:
+                    lines_index.append(n)
+                    break
+    return lines,lines_index
 
 
 #Only take the point that are close to the line

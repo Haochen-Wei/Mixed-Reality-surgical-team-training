@@ -125,12 +125,12 @@ while key != 113:  # for 'q' key
 
     #left graph
     mid_list_l=filter.centerline(Binary_l)
-    line_l=filter.get_line(Binary_l,mid_list_l)
+    line_l,index_l=filter.get_line(Binary_l,mid_list_l,fixed_left_list)
     left_point=filter.classify_point(mid_list_l,line_l)
 
     #right graph
     mid_list_r=filter.centerline(Binary_r)
-    line_r=filter.get_line(Binary_r,mid_list_r)
+    line_r,index_r=filter.get_line(Binary_r,mid_list_r,fixed_right_list)
     right_point=filter.classify_point(mid_list_r,line_r)
     
 
@@ -146,17 +146,14 @@ while key != 113:  # for 'q' key
         for j in range(len(right_point[i])):
             cv2.circle(right_rect,(right_point[i][j][0],right_point[i][j][1]),1,(0,255,0))
     #cv2.imshow("right_line",right_rect)
-    
-    
-    
     #=================================================================================================================
     #This code block is for the 3d reconstruction process
     a3dline=[]
-    for i in range (len(left_point)):
-        for j in range(len(right_point)):
+    for i in range (len(index_l)):
+        for j in range(len(index_r)):
             '''Find the correct way to match differnet point is the key point here, it is really hard to correctly match different tools '''
-            
-            if abs(left_point[i][-1][1]-right_point[j][-1][1])<5: #and abs(len(left_point)-len(right_point))<30: # This step to find the same line in stereo image.
+            #if abs(left_point[i][-1][1]-right_point[j][-1][1])<5: #and abs(len(left_point)-len(right_point))<30: # This step to find the same line in stereo image.
+            if index_l[i]==index_r[j]:
                 #Triangulation find the point
                 a3dpoint=rp.point_cloud(P1,P2,left_point[i],right_point[j])
                 object_point=a3dpoint[0:3,:]

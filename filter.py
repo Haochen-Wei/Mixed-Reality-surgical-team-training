@@ -38,15 +38,6 @@ def centerline(B):
 
 #Calculate the line of the graph
 def get_line(img,mid_list):
-    
-    
-    '''# Calculate the total line number, seems not working so well so just ignore it.
-    expan_list=sum(mid_list,[])
-    if len(mid_list)!=0:
-        avg_len=len(expan_list)/len(mid_list)
-    else:
-        avg_len=1'''
-
 
     #Put the obtained points into a new binary graph
     new_img=np.zeros((np.shape(img)[0],np.shape(img)[1]),np.uint8)
@@ -122,12 +113,6 @@ def classify_point(mid_list,lines):
                 middle_this_line/len(mid_list[i])
                 point_for_this_line.append([middle_this_line,i])
         filtered_point.append(point_for_this_line)
-    
-    """Print for ref below
-    for i in range(len(filtered_point)):
-        X=filtered_point[i]
-        for j in range(len(X)):
-            cv2.circle(img,(X[j][0],X[j][1]),1,(0,255,255),0)"""
 
     return filtered_point
     
@@ -163,8 +148,3 @@ print(len(line_dot))
 #Show the graph
 cv2.imshow('a',img)
 cv2.waitKey()'''
-
-
-
-
-#GITHUB test 111122223333

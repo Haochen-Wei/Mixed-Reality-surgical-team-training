@@ -9,6 +9,7 @@ from matplotlib import pyplot as plt
 import time
 import zmq
 import native
+import Registeration
 #=====================================================================================================================================================
 #Initial Setup
 #Create a ZMQ socket
@@ -58,7 +59,8 @@ while number_flag==0:
     except ValueError:
         print("Please enter a number")
 
-
+fixed_left_list=[]
+fixed_right_list=[]
 
 for i in range(tool_count):
 #Start the registeration process
@@ -66,6 +68,8 @@ for i in range(tool_count):
     cv2.waitKey()
     print("Please move around the tool, once finished, press q to continue")
     key = ''
+    line_left_list=[]
+    line_right_list=[]
     while key != 113:  # for 'q' key
         start=time.time()
         retval, frame = cap.read()
@@ -87,19 +91,15 @@ for i in range(tool_count):
 
         #left graph
         mid_list_l=filter.centerline(Binary_l)
-        line_l=filter.get_line(Binary_l,mid_list_l)
+        line_left_list.append(filter.get_line(Binary_l,mid_list_l)[0])
 
         #right graph
         mid_list_r=filter.centerline(Binary_r)
-        line_r=filter.get_line(Binary_r,mid_list_r)
-
-
-
-
-
-
-
-
+        line_right_list.append(filter.get_line(Binary_r,mid_list_r)[0])
+    
+    
+    fixed_left_list.append(Registeration.reg_2d(line_left_list))
+    fixed_right_list.append(Registeration.reg_2d(line_right_list))
 
 #=====================================================================================================================================================
 #Start the main function
@@ -195,11 +195,6 @@ while key != 113:  # for 'q' key
     if end-start!=0:
         print('FPS is ',1/(end-start))
     key = cv2.waitKey(5)
-
-
-
-
-
 
 #=====================================================================================================================================
 #Main function end here

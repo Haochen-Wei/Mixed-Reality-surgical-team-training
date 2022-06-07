@@ -1,5 +1,4 @@
 #This function is used to find the middle line of the tools.
-from mailbox import linesep
 import numpy as np
 import cv2
 from numba import jit
@@ -8,18 +7,17 @@ import time
 #This function get the all centerline point (raw data) from the graph
 @jit(nopython=True)
 def centerline(B):
-    #binary input required.
     midpoint_list=[]
     for i in range(int(B.shape[0])):
         start=[]
         end=[]
         flag=0
         for j in range(B.shape[1]-1):
-            if B[i][j]==0 and B[i][j-1]!=0:
+            if B[i][j-1]-B[i][j]>10:#if B[i][j]==0 and B[i][j-1]!=0:
                 start.append(j)
                 flag=1
             if flag==1:
-                if B[i][j]==0 and B[i][j+1]!=0:
+                if B[i][j+1]-B[i][j]>10:#if B[i][j]==0 and B[i][j+1]!=0:
                     end.append(j)
                     flag=0
         mid=[]
@@ -31,8 +29,6 @@ def centerline(B):
             for n in range(len(start)-1):
                 if abs(start[n]-end[n])>5:
                     mid.append(int((start[n]+end[n])/2))
-        #if len(mid)==0:
-            #break
         midpoint_list.append(mid)
     return midpoint_list
 

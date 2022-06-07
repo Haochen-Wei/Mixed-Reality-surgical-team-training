@@ -1,11 +1,9 @@
 #This function combined the ZED mini API with the centerline detection.
-
 from asyncio.windows_events import NULL
 import cv2
 import filter
 import recon_point as rp
 import numpy as np
-from matplotlib import pyplot as plt
 import time
 import zmq
 import native
@@ -16,7 +14,6 @@ import Registeration
 context = zmq.Context()
 socket = context.socket(zmq.PUB)
 socket.bind("tcp://*:5555")
-#topic = ["t1","t2","t3","t4","t5","t6","t7","t8"]
 
 #Set resolution
 class Resolution :
@@ -44,7 +41,18 @@ camera_matrix_left, camera_matrix_right, map_left_x, map_left_y, map_right_x, ma
 P1=camera_matrix_left
 P2=camera_matrix_right
 
-
+#=====================================================================================================================================================
+#Create the background
+print("Please do not insert any tools to obtain background, press any key to continue:")
+cv2.waitKey()
+retval, frame = cap.read()
+# Extract left and right images from side-by-side
+left_right_image = np.split(frame, 2, axis=1)
+left_background_color = cv2.remap(left_right_image[0], map_left_x, map_left_y, interpolation=cv2.INTER_LINEAR)
+right_background_color = cv2.remap(left_right_image[1], map_right_x, map_right_y, interpolation=cv2.INTER_LINEAR)
+left_background_grey=cv2.cvtColor(left_background_color,cv2.COLOR_RGB2GRAY)
+right_background_grey=cv2.cvtColor(right_background_color,cv2.COLOR_RGB2GRAY)
+print("Background retraving complete")
 
 #=====================================================================================================================================================
 #Following block is used to registe all the equipments
@@ -78,6 +86,7 @@ for i in range(tool_count):
         left_rect = cv2.remap(left_right_image[0], map_left_x, map_left_y, interpolation=cv2.INTER_LINEAR)
         right_rect = cv2.remap(left_right_image[1], map_right_x, map_right_y, interpolation=cv2.INTER_LINEAR)
 
+        '''
         #Convert to Binary and normalize the brighteness
         g_l=cv2.cvtColor(left_rect,cv2.COLOR_RGB2GRAY)
         g_r=cv2.cvtColor(right_rect,cv2.COLOR_RGB2GRAY)
@@ -87,15 +96,21 @@ for i in range(tool_count):
         g_r=np.uint8(g_r*(255/max_r))
         cv2.imshow("l",g_l)
         [_,Binary_l]=cv2.threshold(g_l,70,255,cv2.THRESH_BINARY)
-        [_,Binary_r]=cv2.threshold(g_r,70,255,cv2.THRESH_BINARY)
+        [_,Binary_r]=cv2.threshold(g_r,70,255,cv2.THRESH_BINARY)'''
+
+        #Background subtraction
+        g_l=cv2.cvtColor(left_rect,cv2.COLOR_RGB2GRAY)
+        g_r=cv2.cvtColor(right_rect,cv2.COLOR_RGB2GRAY)
+        g_l=np.abs(g_l-left_background_grey)
+        g_r=np.abs(g_r-right_background_grey)
 
         #left graph
-        mid_list_l=filter.centerline(Binary_l)
-        line_left_list.append(filter.get_line(Binary_l,mid_list_l)[0])
+        mid_list_l=filter.centerline(g_l)
+        line_left_list.append(filter.get_line(g_l,mid_list_l)[0])#g_l replaced Binary_l
 
         #right graph
-        mid_list_r=filter.centerline(Binary_r)
-        line_right_list.append(filter.get_line(Binary_r,mid_list_r)[0])
+        mid_list_r=filter.centerline(g_r)
+        line_right_list.append(filter.get_line(g_r,mid_list_r)[0])#g_r replaced Binary_r
     
     
     fixed_left_list.append(Registeration.reg_2d(line_left_list))
@@ -112,6 +127,7 @@ while key != 113:  # for 'q' key
     left_rect = cv2.remap(left_right_image[0], map_left_x, map_left_y, interpolation=cv2.INTER_LINEAR)
     right_rect = cv2.remap(left_right_image[1], map_right_x, map_right_y, interpolation=cv2.INTER_LINEAR)
 
+    '''
     #Convert to Binary and normalize the brighteness
     g_l=cv2.cvtColor(left_rect,cv2.COLOR_RGB2GRAY)
     g_r=cv2.cvtColor(right_rect,cv2.COLOR_RGB2GRAY)
@@ -121,16 +137,21 @@ while key != 113:  # for 'q' key
     g_r=np.uint8(g_r*(255/max_r))
     cv2.imshow("l",g_l)
     [_,Binary_l]=cv2.threshold(g_l,70,255,cv2.THRESH_BINARY)
-    [_,Binary_r]=cv2.threshold(g_r,70,255,cv2.THRESH_BINARY)
+    [_,Binary_r]=cv2.threshold(g_r,70,255,cv2.THRESH_BINARY)'''
+
+    g_l=cv2.cvtColor(left_rect,cv2.COLOR_RGB2GRAY)
+    g_r=cv2.cvtColor(right_rect,cv2.COLOR_RGB2GRAY)
+    g_l=np.abs(g_l-left_background_grey)
+    g_r=np.abs(g_r-right_background_grey)
 
     #left graph
-    mid_list_l=filter.centerline(Binary_l)
-    line_l,index_l=filter.get_line(Binary_l,mid_list_l,fixed_left_list)
+    mid_list_l=filter.centerline(g_l)
+    line_l,index_l=filter.get_line(g_l,mid_list_l,fixed_left_list)
     left_point=filter.classify_point(mid_list_l,line_l)
 
     #right graph
-    mid_list_r=filter.centerline(Binary_r)
-    line_r,index_r=filter.get_line(Binary_r,mid_list_r,fixed_right_list)
+    mid_list_r=filter.centerline(g_r)
+    line_r,index_r=filter.get_line(g_r,mid_list_r,fixed_right_list)
     right_point=filter.classify_point(mid_list_r,line_r)
     
 
@@ -140,18 +161,17 @@ while key != 113:  # for 'q' key
     for i in range(len(left_point)):
         for j in range(len(left_point[i])):
             cv2.circle(left_rect,(left_point[i][j][0],left_point[i][j][1]),1,(0,255,0))
-    #cv2.imshow("left_line",left_rect)
+    cv2.imshow("left_line",left_rect)
     #Show the line point
     for i in range(len(right_point)):
         for j in range(len(right_point[i])):
             cv2.circle(right_rect,(right_point[i][j][0],right_point[i][j][1]),1,(0,255,0))
-    #cv2.imshow("right_line",right_rect)
+    cv2.imshow("right_line",right_rect)
     #=================================================================================================================
     #This code block is for the 3d reconstruction process
     a3dline=[]
     for i in range (len(index_l)):
         for j in range(len(index_r)):
-            '''Find the correct way to match differnet point is the key point here, it is really hard to correctly match different tools '''
             #if abs(left_point[i][-1][1]-right_point[j][-1][1])<5: #and abs(len(left_point)-len(right_point))<30: # This step to find the same line in stereo image.
             if index_l[i]==index_r[j]:
                 #Triangulation find the point

@@ -98,7 +98,7 @@ def init_calibration(calibration_file, image_size) :
     T = np.array([[T_[0]], [T_[1]], [T_[2]]])
     R1 = R2 = P1 = P2 = np.array([])
 
-    R1, R2, P1, P2 = cv2.stereoRectify(cameraMatrix1=cameraMatrix_left,
+    R1, R2, P1, P2, Q = cv2.stereoRectify(cameraMatrix1=cameraMatrix_left,
                                        cameraMatrix2=cameraMatrix_right,
                                        distCoeffs1=distCoeffs_left,
                                        distCoeffs2=distCoeffs_right,
@@ -114,4 +114,4 @@ def init_calibration(calibration_file, image_size) :
     cameraMatrix_left = P1
     cameraMatrix_right = P2
 
-    return cameraMatrix_left, cameraMatrix_right, map_left_x, map_left_y, map_right_x, map_right_y
+    return cameraMatrix_left, cameraMatrix_right, map_left_x, map_left_y, map_right_x, map_right_y, Q

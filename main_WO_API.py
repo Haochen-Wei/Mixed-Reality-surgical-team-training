@@ -1,5 +1,4 @@
 #This function combined the ZED mini API with the centerline detection.
-from asyncio.windows_events import NULL
 import cv2
 import filter
 import recon_point as rp
@@ -17,41 +16,48 @@ socket.bind("tcp://*:5555")
 
 #Set resolution
 class Resolution :
-    width = 1280#672
-    height = 720#376
+    width = 1280 #672 for laptop
+    height = 720 #376 for laptop
 
 #Open camera
 cap = cv2.VideoCapture(0,cv2.CAP_DSHOW)
 if cap.isOpened() == 0:
     exit(-1)
 image_size = Resolution()
-image_size.width = 1280#672
-image_size.height = 720#376
+image_size.width = 1280 #672
+image_size.height = 720 #376
 
-# Set the video resolution to HD720
+# Set the video resolution to HD720 (VGA for laptop)
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, image_size.width*2)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, image_size.height)
 
-#Read configuration and find camera matrix
+# Read configuration and find camera matrix
 calibration_file = "SN10028124.conf"
 if calibration_file  == "":
     print("Missing Calibration file")
     exit(1)
-camera_matrix_left, camera_matrix_right, map_left_x, map_left_y, map_right_x, map_right_y = native.init_calibration(calibration_file, image_size)
+camera_matrix_left, camera_matrix_right, map_left_x, map_left_y, map_right_x, map_right_y,Q = native.init_calibration(calibration_file, image_size)
 P1=camera_matrix_left
 P2=camera_matrix_right
+
+# Create Aruco Board for locolization, please reference aruco.py for board img
+# board,dictionary,detect_parameters=Aruco.generate_board(5,7,0.04,0.01)
 
 #=====================================================================================================================================================
 #Create the background
 print("Please do not insert any tools to obtain background, press any key to continue:")
 cv2.waitKey()
 retval, frame = cap.read()
-# Extract left and right images from side-by-side
+# Extract left and right images from side-by-side image and recitify them using given parameter 
 left_right_image = np.split(frame, 2, axis=1)
 left_background_color = cv2.remap(left_right_image[0], map_left_x, map_left_y, interpolation=cv2.INTER_LINEAR)
 right_background_color = cv2.remap(left_right_image[1], map_right_x, map_right_y, interpolation=cv2.INTER_LINEAR)
 left_background_grey=cv2.cvtColor(left_background_color,cv2.COLOR_RGB2GRAY)
 right_background_grey=cv2.cvtColor(right_background_color,cv2.COLOR_RGB2GRAY)
+
+#Obtain the initial pose of board.
+# initial_R,initial_t=Aruco.detect_pose(left_right_image[0],board,dictionary,detect_parameters,P1)
+
 print("Background retraving complete")
 
 #=====================================================================================================================================================
@@ -87,8 +93,13 @@ for i in range(tool_count):
         right_rect = cv2.remap(left_right_image[1], map_right_x, map_right_y, interpolation=cv2.INTER_LINEAR)
 
         '''
-        #Convert to Binary and normalize the brighteness
-        g_l=cv2.cvtColor(left_rect,cv2.COLOR_RGB2GRAY)
+        #Using ArUco board to recitify the movement of camera, test no recitify first.
+        new_R,new_t=Aruco.detect_pose(left_right_image[0],board,dictionary,detect_parameters,P1)'''
+        
+        
+
+        #Old binary method
+        '''g_l=cv2.cvtColor(left_rect,cv2.COLOR_RGB2GRAY)
         g_r=cv2.cvtColor(right_rect,cv2.COLOR_RGB2GRAY)
         max_l=np.amax(g_l)
         max_r=np.amax(g_r)
@@ -126,10 +137,14 @@ while key != 113:  # for 'q' key
     left_right_image = np.split(frame, 2, axis=1)
     left_rect = cv2.remap(left_right_image[0], map_left_x, map_left_y, interpolation=cv2.INTER_LINEAR)
     right_rect = cv2.remap(left_right_image[1], map_right_x, map_right_y, interpolation=cv2.INTER_LINEAR)
-
+    
     '''
-    #Convert to Binary and normalize the brighteness
-    g_l=cv2.cvtColor(left_rect,cv2.COLOR_RGB2GRAY)
+    Need be filling out for recitify the movement using new_R and new_t, test no recitify first
+    new_R,new_t=Aruco.detect_pose(left_right_image[0],board,dictionary,detect_parameters,P1)
+    '''
+
+    #Following is the old binary method
+    '''g_l=cv2.cvtColor(left_rect,cv2.COLOR_RGB2GRAY)
     g_r=cv2.cvtColor(right_rect,cv2.COLOR_RGB2GRAY)
     max_l=np.amax(g_l)
     max_r=np.amax(g_r)

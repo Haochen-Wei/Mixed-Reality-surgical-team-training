@@ -3,6 +3,8 @@ import numpy as np
 
 # obtain the projection matrixes.
 
+#This function won't be used anymore
+'''
 def get_P_matrix(zed):
 
     calibration_params = zed.get_camera_information().calibration_parameters
@@ -33,7 +35,7 @@ def get_P_matrix(zed):
     P1=np.matmul(K_right,np.hstack((np.eye(3),np.zeros((3,1)))))
     P2=np.matmul(K_left,np.hstack((R,t)))
 
-    return P1,P2,K_left
+    return P1,P2,K_left'''
 
 def point_cloud(P1,P2,point_img1,point_img2):
     

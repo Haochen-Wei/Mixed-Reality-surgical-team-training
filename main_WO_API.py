@@ -22,6 +22,7 @@ class Resolution :
 #Open camera
 cap = cv2.VideoCapture(0,cv2.CAP_DSHOW)
 if cap.isOpened() == 0:
+    print("Can not open Desiginated camera")
     exit(-1)
 image_size = Resolution()
 image_size.width = 1280 #672
@@ -33,36 +34,19 @@ cap.set(cv2.CAP_PROP_FRAME_HEIGHT, image_size.height)
 
 # Read configuration and find camera matrix
 calibration_file = "SN10028124.conf"
-if calibration_file  == "":
-    print("Missing Calibration file")
-    exit(1)
-camera_matrix_left, camera_matrix_right, map_left_x, map_left_y, map_right_x, map_right_y,Q = native.init_calibration(calibration_file, image_size)
+camera_matrix_left, camera_matrix_right, map_left_x, map_left_y, map_right_x, map_right_y = native.init_calibration(calibration_file, image_size)
 P1=camera_matrix_left
 P2=camera_matrix_right
 
-# Create Aruco Board for locolization, please reference aruco.py for board img
-# board,dictionary,detect_parameters=Aruco.generate_board(5,7,0.04,0.01)
+#Create the bg class, using kNN method, reference opencv background subtraction.
+#backSub = cv.createBackgroundSubtractorMOG2()
+backSub_left = cv2.createBackgroundSubtractorKNN()
+backSub_right = cv2.createBackgroundSubtractorKNN()
 
 #=====================================================================================================================================================
-#Create the background
-print("Please do not insert any tools to obtain background, press any key to continue:")
-cv2.waitKey()
-retval, frame = cap.read()
-# Extract left and right images from side-by-side image and recitify them using given parameter 
-left_right_image = np.split(frame, 2, axis=1)
-left_background_color = cv2.remap(left_right_image[0], map_left_x, map_left_y, interpolation=cv2.INTER_LINEAR)
-right_background_color = cv2.remap(left_right_image[1], map_right_x, map_right_y, interpolation=cv2.INTER_LINEAR)
-left_background_grey=cv2.cvtColor(left_background_color,cv2.COLOR_RGB2GRAY)
-right_background_grey=cv2.cvtColor(right_background_color,cv2.COLOR_RGB2GRAY)
-
-#Obtain the initial pose of board.
-# initial_R,initial_t=Aruco.detect_pose(left_right_image[0],board,dictionary,detect_parameters,P1)
-
-print("Background retraving complete")
-
-#=====================================================================================================================================================
-#Following block is used to registe all the equipments
-number_flag=0#This flag is used to detect the input status
+#Following block is used to registe all the equipments Modify this part to debug
+#Define how many tools will be used first.
+number_flag=0
 while number_flag==0:
     try:
         tool_count=int(input("Please enter the number of tools you want to use (maximum 8):"))
@@ -73,30 +57,26 @@ while number_flag==0:
     except ValueError:
         print("Please enter a number")
 
+#Two list used for store the status for future calculating the piviot points.
 fixed_left_list=[]
 fixed_right_list=[]
 
 for i in range(tool_count):
 #Start the registeration process
-    print("Please insert the "+i+"th tool into the first entry port then press any bottom to continue")
-    cv2.waitKey()
+    input("Please insert the "+str(i+1)+"th tool into the first entry port then press any bottom to continue")
     print("Please move around the tool, once finished, press q to continue")
     key = ''
     line_left_list=[]
     line_right_list=[]
+    j=0
     while key != 113:  # for 'q' key
+        j+=1
         start=time.time()
         retval, frame = cap.read()
         # Extract left and right images from side-by-side
         left_right_image = np.split(frame, 2, axis=1)
         left_rect = cv2.remap(left_right_image[0], map_left_x, map_left_y, interpolation=cv2.INTER_LINEAR)
         right_rect = cv2.remap(left_right_image[1], map_right_x, map_right_y, interpolation=cv2.INTER_LINEAR)
-
-        '''
-        #Using ArUco board to recitify the movement of camera, test no recitify first.
-        new_R,new_t=Aruco.detect_pose(left_right_image[0],board,dictionary,detect_parameters,P1)'''
-        
-        
 
         #Old binary method
         '''g_l=cv2.cvtColor(left_rect,cv2.COLOR_RGB2GRAY)
@@ -110,22 +90,41 @@ for i in range(tool_count):
         [_,Binary_r]=cv2.threshold(g_r,70,255,cv2.THRESH_BINARY)'''
 
         #Background subtraction
-        g_l=cv2.cvtColor(left_rect,cv2.COLOR_RGB2GRAY)
-        g_r=cv2.cvtColor(right_rect,cv2.COLOR_RGB2GRAY)
-        g_l=np.abs(g_l-left_background_grey)
-        g_r=np.abs(g_r-right_background_grey)
+        g_l = backSub_left.apply(left_rect)
+        g_r = backSub_right.apply(right_rect)
 
-        #left graph
+        cv2.imshow("left_diff",g_l)
+        cv2.imshow("right_diff",g_r)
+
+        # Center_line left graph
         mid_list_l=filter.centerline(g_l)
-        line_left_list.append(filter.get_line(g_l,mid_list_l)[0])#g_l replaced Binary_l
+        if len(mid_list_l)!=0:
+            line_left,_=filter.get_line(g_l,mid_list_l,[])
+            for i in range(len(line_left)):
+                line_left_list.append(line_left[i])#g_l replaced Binary_l
+        if len(line_left_list)>100: #Limit the lenth of list to 100 to aviod memory explode
+            line_left_list.pop(0)
 
-        #right graph
+        # Center_line right graph
         mid_list_r=filter.centerline(g_r)
-        line_right_list.append(filter.get_line(g_r,mid_list_r)[0])#g_r replaced Binary_r
+        if len(mid_list_r)!=0:
+            line_right,_=filter.get_line(g_r,mid_list_r,[])
+            for i in range(len(line_right)):
+                line_right_list.append(line_right[i])#g_r replaced Binary_r
+        if len(line_right_list)>100: #Limit the lenth of list to 100 to aviod memory explode
+            line_right_list.pop(0)
+        key = cv2.waitKey(5)
     
-    
+    cap.release()
+    cv2.destroyAllWindows()
     fixed_left_list.append(Registeration.reg_2d(line_left_list))
     fixed_right_list.append(Registeration.reg_2d(line_right_list))
+
+
+print("left",fixed_left_list)
+print("right",fixed_right_list)
+
+exit(-1)
 
 #=====================================================================================================================================================
 #Start the main function
@@ -154,10 +153,7 @@ while key != 113:  # for 'q' key
     [_,Binary_l]=cv2.threshold(g_l,70,255,cv2.THRESH_BINARY)
     [_,Binary_r]=cv2.threshold(g_r,70,255,cv2.THRESH_BINARY)'''
 
-    g_l=cv2.cvtColor(left_rect,cv2.COLOR_RGB2GRAY)
-    g_r=cv2.cvtColor(right_rect,cv2.COLOR_RGB2GRAY)
-    g_l=np.abs(g_l-left_background_grey)
-    g_r=np.abs(g_r-right_background_grey)
+#####Need to filling Background sub here
 
     #left graph
     mid_list_l=filter.centerline(g_l)

@@ -18,7 +18,7 @@ def generate_board():
     board_img=cv2.aruco.drawPlanarBoard(board,(1700,2200),marginSize=102,borderBits=1)
     
     #Uncomment following line to write the board file
-    #cv2.imwrite("board2.png", board_img)
+    cv2.imwrite("board2.png", board_img)
     
     #Create the parameter for future board detection
     parameters = cv2.aruco.DetectorParameters_create()

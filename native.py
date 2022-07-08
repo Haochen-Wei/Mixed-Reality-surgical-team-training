@@ -111,7 +111,5 @@ def init_calibration(calibration_file, image_size) :
     map_left_x, map_left_y = cv2.initUndistortRectifyMap(cameraMatrix_left, distCoeffs_left, R1, P1, (image_size.width, image_size.height), cv2.CV_32FC1)
     map_right_x, map_right_y = cv2.initUndistortRectifyMap(cameraMatrix_right, distCoeffs_right, R2, P2, (image_size.width, image_size.height), cv2.CV_32FC1)
 
-    cameraMatrix_left = P1
-    cameraMatrix_right = P2
 
-    return cameraMatrix_left, cameraMatrix_right, map_left_x, map_left_y, map_right_x, map_right_y
+    return P1, P2, map_left_x, map_left_y, map_right_x, map_right_y,cameraMatrix_left,distCoeffs_left

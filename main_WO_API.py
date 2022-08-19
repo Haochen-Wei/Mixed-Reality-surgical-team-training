@@ -147,14 +147,12 @@ for i in range(tool_count):
                 #cv2.circle(left_rect,(left_point[i][j][0],left_point[i][j][1]),1,(0,255,0))
                 cv2.circle(left_rect,(int(left_point[i][j]),i),1,(0,255,0))
         cv2.imshow("left_line",left_rect)
-        cv2.imwrite("L.jpg",left_rect)
         #Show the line point
         for i in range(len(right_point)):
             for j in range(len(right_point[i])):
                 #cv2.circle(right_rect,(right_point[i][j][0],right_point[i][j][1]),1,(0,255,0))
                 cv2.circle(right_rect,(int(right_point[i][j]),i),1,(0,255,0))
         cv2.imshow("right_line",right_rect)
-        cv2.imwrite("R.jpg",right_rect)
 #================================================================================================================
         key = cv2.waitKey(5)
     

@@ -1,10 +1,71 @@
 import cv2
 import numpy as np
 
-# obtain the projection matrixes.
+def point_cloud(P1,P2,point_img1,point_img2):
+    
+    left=np.array(point_img1,dtype=np.float32)
+    left=np.transpose(left)
+    right=np.array(point_img2,dtype=np.float32)
+    right=np.transpose(right)
 
-#This function won't be used anymore
-'''
+    #Using epipolar constrain to filter the point again
+    left_index=left[1,:]
+    right_index=right[1,:]
+    left_length=len(left_index)
+    right_length=len(right_index)
+
+
+    i=0
+    j=0
+    left_data=[]
+    right_data=[]
+    index=[]
+
+    if left_length<=right_length:
+        while i < left_length-10:  #-10 represent that discard some points on the tips.
+            if j>=right_length-10: #-10 represent that discard some points on the tips.
+                break
+            if left_index[i]==right_index[j]:
+                left_data.append(left[0][i])
+                right_data.append(right[0][j])
+                index.append(left_index[i])
+                i+=1
+                j+=1
+            elif left_index[i]>right_index[j]:
+                j+=1
+            elif left_index[i]<right_index[j]:
+                i+=1
+
+
+    if left_length>right_length:
+        while j < right_length-10: #-10 represent that discard some points on the tips.
+            if i>=left_length-10:  #-10 represent that discard some points on the tips.
+                break
+            if left_index[i]==right_index[j]:
+                left_data.append(left[0][i])
+                right_data.append(right[0][j])
+                index.append(left_index[i])
+                i+=1
+                j+=1
+            elif left_index[i]>right_index[j]:
+                j+=1
+            elif left_index[i]<right_index[j]:
+                i+=1
+    
+    # Convert the data and index to ndarray
+    left_np=np.array(left_data)
+    right_np=np.array(right_data)
+    index_np=np.array(index)
+    left_p=np.vstack((left_np,index_np))
+    right_p=np.vstack((right_np,index_np))
+
+    point=cv2.triangulatePoints(P1,P2,left_p,right_p)
+    point=point/point[3]
+
+    return point
+
+
+'''This function won't be used anymore
 def get_P_matrix(zed):
 
     calibration_params = zed.get_camera_information().calibration_parameters
@@ -36,71 +97,3 @@ def get_P_matrix(zed):
     P2=np.matmul(K_left,np.hstack((R,t)))
 
     return P1,P2,K_left'''
-
-def point_cloud(P1,P2,point_img1,point_img2):
-    
-    left=np.array(point_img1,dtype=np.float32)
-    left=np.transpose(left)
-    right=np.array(point_img2,dtype=np.float32)
-    right=np.transpose(right)
-
-    #Using epipolar constrain to filter the point again
-    left_index=left[1,:]
-    right_index=right[1,:]
-    left_length=len(left_index)
-    right_length=len(right_index)
-
-
-    i=0
-    j=0
-    left_data=[]
-    right_data=[]
-    index=[]
-
-    if left_length<=right_length:
-        while i < left_length:
-            if j>=right_length:
-                break
-            if left_index[i]==right_index[j]:
-                left_data.append(left[0][i])
-                right_data.append(right[0][j])
-                index.append(left_index[i])
-                i+=1
-                j+=1
-            elif left_index[i]>right_index[j]:
-                j+=1
-            elif left_index[i]<right_index[j]:
-                i+=1
-
-
-    if left_length>right_length:
-        while j < right_length:
-            if i>=left_length:
-                break
-            if left_index[i]==right_index[j]:
-                left_data.append(left[0][i])
-                right_data.append(right[0][j])
-                index.append(left_index[i])
-                i+=1
-                j+=1
-            elif left_index[i]>right_index[j]:
-                j+=1
-            elif left_index[i]<right_index[j]:
-                i+=1
-    
-    # Convert the data and index to ndarray
-    left_np=np.array(left_data)
-    right_np=np.array(right_data)
-    index_np=np.array(index)
-    left_p=np.vstack((left_np,index_np))
-    right_p=np.vstack((right_np,index_np))
-
-    point=cv2.triangulatePoints(P1,P2,left_p,right_p)
-    point=point/point[3]
-    '''
-    if np.size(right)<np.size(left):
-        left=left[:,np.shape(left)[1]-np.shape(right)[1]:]
-        point=cv2.triangulatePoints(P1,P2,left,right)
-        point=point/point[3]'''
-
-    return point

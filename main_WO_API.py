@@ -27,8 +27,8 @@ class Resolution :
 
 
 #Open camera
-cap = cv2.VideoCapture(0,cv2.CAP_DSHOW)
-end_cap=cv2.VideoCapture(2,cv2.CAP_DSHOW)
+cap = cv2.VideoCapture(1,cv2.CAP_DSHOW)
+end_cap=cv2.VideoCapture(0,cv2.CAP_DSHOW)
 if cap.isOpened() == 0 or end_cap.isOpened()==0:
     print("Can not open Desiginated camera")
     exit(-1)
@@ -53,13 +53,10 @@ P1, P2, map_left_x, map_left_y, map_right_x, map_right_y,K_left,dist_left = nati
 
 
 #Create the bg class, using kNN method, reference opencv background subtraction.
-# backSub = cv.createBackgroundSubtractorMOG2()
-backSub_left = cv2.createBackgroundSubtractorKNN()
-backSub_right = cv2.createBackgroundSubtractorKNN()
-backSub_left.setHistory(10000)
-backSub_left.setShadowValue(255)
-backSub_right.setHistory(10000)
-backSub_right.setShadowValue(255)
+# backSub_left = cv2.createBackgroundSubtractorKNN()
+# backSub_right = cv2.createBackgroundSubtractorKNN()
+# backSub_left.setShadowValue(255)
+# backSub_right.setShadowValue(255)
 
 
 #Create board object for detection
@@ -101,21 +98,20 @@ for i in range(tool_count):
         left_right_image = np.split(frame, 2, axis=1)
         left_rect = cv2.remap(left_right_image[0], map_left_x, map_left_y, interpolation=cv2.INTER_LINEAR)
         right_rect = cv2.remap(left_right_image[1], map_right_x, map_right_y, interpolation=cv2.INTER_LINEAR)
-
-        '''Old binary method
+        
+        # Old binary method
         g_l=cv2.cvtColor(left_rect,cv2.COLOR_RGB2GRAY)
         g_r=cv2.cvtColor(right_rect,cv2.COLOR_RGB2GRAY)
         max_l=np.amax(g_l)
         max_r=np.amax(g_r)
         g_l=np.uint8(g_l*(255/max_l))
         g_r=np.uint8(g_r*(255/max_r))
-        cv2.imshow("l",g_l)
-        [_,Binary_l]=cv2.threshold(g_l,70,255,cv2.THRESH_BINARY)
-        [_,Binary_r]=cv2.threshold(g_r,70,255,cv2.THRESH_BINARY)'''
+        [_,g_l]=cv2.threshold(g_l,15,255,cv2.THRESH_BINARY)
+        [_,g_r]=cv2.threshold(g_r,15,255,cv2.THRESH_BINARY)
 
         #Background subtraction
-        g_l = backSub_left.apply(left_rect,learningRate=-1)
-        g_r = backSub_right.apply(right_rect,learningRate=-1)
+        # g_l = backSub_left.apply(left_rect)
+        # g_r = backSub_right.apply(right_rect)
 
         cv2.imshow("left_diff",g_l)
         cv2.imshow("right_diff",g_r)
@@ -142,20 +138,24 @@ for i in range(tool_count):
 #================================================================================================================
 #This block is used to show the left and right filtered points   
         #Show the line point
-        left_point=filter.classify_point(mid_list_l,line_left)
-        right_point=filter.classify_point(mid_list_r,line_right)
+        # left_point=filter.classify_point(mid_list_l,line_left)
+        # right_point=filter.classify_point(mid_list_r,line_right)
+        left_point=mid_list_l
+        right_point=mid_list_r
         for i in range(len(left_point)):
             for j in range(len(left_point[i])):
-                cv2.circle(left_rect,(left_point[i][j][0],left_point[i][j][1]),1,(0,255,0))
+                #cv2.circle(left_rect,(left_point[i][j][0],left_point[i][j][1]),1,(0,255,0))
+                cv2.circle(left_rect,(int(left_point[i][j]),i),1,(0,255,0))
         cv2.imshow("left_line",left_rect)
+        cv2.imwrite("L.jpg",left_rect)
         #Show the line point
         for i in range(len(right_point)):
             for j in range(len(right_point[i])):
-                cv2.circle(right_rect,(right_point[i][j][0],right_point[i][j][1]),1,(0,255,0))
+                #cv2.circle(right_rect,(right_point[i][j][0],right_point[i][j][1]),1,(0,255,0))
+                cv2.circle(right_rect,(int(right_point[i][j]),i),1,(0,255,0))
         cv2.imshow("right_line",right_rect)
+        cv2.imwrite("R.jpg",right_rect)
 #================================================================================================================
-
-
         key = cv2.waitKey(5)
     
     
@@ -163,13 +163,17 @@ for i in range(tool_count):
     fixed_left_list.append(Registeration.reg_2d(line_left_list))
     fixed_right_list.append(Registeration.reg_2d(line_right_list))
 
-print("left_lines",line_left_list)
-
-print("left",fixed_left_list)
-
-cap.release()
-end_cap.release()
-exit(-1)
+# Shown fixed point 
+# for i in range(len(fixed_left_list)):
+#     cv2.circle(left_rect,(int(fixed_left_list[i][0]),int(fixed_left_list[i][1])),5,(0,0,255),-1)
+# for j in range(len(fixed_right_list)):
+#     cv2.circle(right_rect,(int(fixed_right_list[i][0]),int(fixed_right_list[i][1])),5,(0,0,255),-1)
+# cv2.imshow("left_line",left_rect)
+# cv2.imshow("right_line",right_rect)
+# cv2.waitKey()
+# cap.release()
+# end_cap.release()
+# exit(-1)
 
 #=====================================================================================================================================================
 #Start the main function
@@ -182,20 +186,18 @@ while key != 113:  # for 'q' key
     left_rect = cv2.remap(left_right_image[0], map_left_x, map_left_y, interpolation=cv2.INTER_LINEAR)
     right_rect = cv2.remap(left_right_image[1], map_right_x, map_right_y, interpolation=cv2.INTER_LINEAR)
     
-    # #Old binary method
-    # g_l=cv2.cvtColor(left_rect,cv2.COLOR_RGB2GRAY)
-    # g_r=cv2.cvtColor(right_rect,cv2.COLOR_RGB2GRAY)
-    # max_l=np.amax(g_l)
-    # max_r=np.amax(g_r)
-    # g_l=np.uint8(g_l*(255/max_l))
-    # g_r=np.uint8(g_r*(255/max_r))
-    # [_,Binary_l]=cv2.threshold(g_l,70,255,cv2.THRESH_BINARY)
-    # [_,Binary_r]=cv2.threshold(g_r,70,255,cv2.THRESH_BINARY)
-    # g_l=Binary_l
-    # g_r=Binary_r
+    #Old binary method
+    g_l=cv2.cvtColor(left_rect,cv2.COLOR_RGB2GRAY)
+    g_r=cv2.cvtColor(right_rect,cv2.COLOR_RGB2GRAY)
+    max_l=np.amax(g_l)
+    max_r=np.amax(g_r)
+    g_l=np.uint8(g_l*(255/max_l))
+    g_r=np.uint8(g_r*(255/max_r))
+    [_,g_l]=cv2.threshold(g_l,15,255,cv2.THRESH_BINARY)
+    [_,g_r]=cv2.threshold(g_r,15,255,cv2.THRESH_BINARY)
 
-    g_l = backSub_left.apply(left_rect,0)
-    g_r = backSub_right.apply(right_rect,0)
+    # g_l = backSub_left.apply(left_rect,0)
+    # g_r = backSub_right.apply(right_rect,0)
 
     #left graph
     mid_list_l=filter.centerline(g_l)
@@ -219,7 +221,6 @@ while key != 113:  # for 'q' key
     markerCorners_main, markerIds_main, _ = cv2.aruco.detectMarkers(left_right_image[0], dictionary, parameters=detect_parameters)
     if np.size(markerIds_main)>1:
         success_main,R_main,t_main=cv2.aruco.estimatePoseBoard(markerCorners_main, markerIds_main,board,K_left,dist_left,None,None)
-        
         
         # if success_main!=0:
         #     image=left_right_image[0]
@@ -265,7 +266,6 @@ while key != 113:  # for 'q' key
             cv2.circle(right_rect,(right_point[i][j][0],right_point[i][j][1]),1,(0,255,0))
     cv2.imshow("right_line",right_rect)
 
-
 #=================================================================================================================
 #This code block is for the 3d reconstruction process
     a3dline=[]
@@ -291,7 +291,7 @@ while key != 113:  # for 'q' key
                 result_z=np.linalg.lstsq(ys,zs,rcond=None)
                 zk=result_z[0][0]
                 zb=result_z[0][1]
-                a3dline.append([xk,xb,zk,zb,min(ys[:,0])])
+                a3dline.append([xk,xb,zk,zb,min(ys[:,0]),index_l[i]])
     
 
     #=======================================================================================================================
@@ -299,17 +299,17 @@ while key != 113:  # for 'q' key
     data=""
     topic='tool'
     for i in range(len(a3dline)):
-        for j in range(5):
+        for j in range(6):
             data=data+str(a3dline[i][j])+"_"
         data=data+'!'
     if len(a3dline)>0:
         msg = [topic.encode("utf-8"), data.encode("utf-8")]
-        print(msg)
         socket.send_multipart(msg)
+    print("tool_count",len(a3dline))
     end=time.time()
     # Print the FPS
-    if end-start!=0:
-        print('FPS is ',1/(end-start))
+    # if end-start!=0:
+    #     print('FPS is ',1/(end-start))
     key = cv2.waitKey(5)
 
 #=====================================================================================================================================

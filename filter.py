@@ -2,32 +2,32 @@
 import numpy as np
 import cv2
 from numba import jit
-import time
+# import time
 
 #This function get the all centerline point (raw data) from the graph
 @jit(nopython=True)
 def centerline(B):
     midpoint_list=[]
-    for i in range(int(B.shape[0])):
+    for i in range(int(B.shape[0]*0.85)):
         start=[]
         end=[]
         flag=0
         for j in range(B.shape[1]-1):
-            if B[i][j-1]-B[i][j]>100:#if B[i][j]==0 and B[i][j-1]!=0:
+            if B[i][j]==0 and B[i][j-1]!=0:     #if B[i][j-1]-B[i][j]>100:
                 start.append(j)
                 flag=1
             if flag==1:
-                if B[i][j+1]-B[i][j]>100:#if B[i][j]==0 and B[i][j+1]!=0:
+                if B[i][j]==0 and B[i][j+1]!=0: #if B[i][j+1]-B[i][j]>100:
                     end.append(j)
                     flag=0
         mid=[]
         if len(start)==len(end):
             for n in range(len(start)):
-                if abs(start[n]-end[n])>5:
+                if abs(start[n]-end[n])>3:
                     mid.append(int((start[n]+end[n])/2))
         else: 
             for n in range(len(start)-1):
-                if abs(start[n]-end[n])>5:
+                if abs(start[n]-end[n])>3:
                     mid.append(int((start[n]+end[n])/2))
         midpoint_list.append(mid)
     return midpoint_list
@@ -54,13 +54,13 @@ def get_line(img,mid_list,fixed_list):
             #new_img[i][mid_list[i][j]-3]=255
 
     #Find the line using line detection:
-    lines_point=cv2.HoughLinesP(new_img,1,np.pi/180,50,25,50)#200,100,100
+    lines_point=cv2.HoughLinesP(new_img,1,np.pi/180,100,80,50)#200,100,100
     rep_lines=[]
     #Using matrix method to calculate the parameter of the line
     for i in range(2):
         if  lines_point is not None:
             break
-        lines_point=cv2.HoughLinesP(new_img,1,np.pi/180,50,25,50)
+        lines_point=cv2.HoughLinesP(new_img,1,np.pi/180,100,80,50)
     
 
     #Coordinate here y axis in the image was independent variable and x axis is dependent variable
@@ -91,8 +91,8 @@ def get_line(img,mid_list,fixed_list):
             lines.append(tested)
             for n in range(len(fixed_list)):
                 fixed_point=fixed_list[n]
-                print("diff",fixed_point[0]-tested[0]*fixed_point[1]-tested[1])
-                if abs(fixed_point[0]-tested[0]*fixed_point[1]-tested[1])<50: # Need to be fine tuned here
+                #print("diff",fixed_point[0]-tested[0]*fixed_point[1]-tested[1])
+                if abs(fixed_point[0]-tested[0]*fixed_point[1]-tested[1])<1000000: # Need to be fine tuned here
                     lines_index.append(n)
                     break
     return lines,lines_index
@@ -110,7 +110,7 @@ def classify_point(mid_list,lines):
         for i in range(len(mid_list)):
             middle_this_line=0
             for j in range(len(mid_list[i])):
-                if abs(mid_list[i][j]-(selected_line[0]*i+selected_line[1]))<5:
+                if abs(mid_list[i][j]-(selected_line[0]*i+selected_line[1]))<4:
                     middle_this_line+=mid_list[i][j]   
             if middle_this_line!=0:
                 middle_this_line/len(mid_list[i])

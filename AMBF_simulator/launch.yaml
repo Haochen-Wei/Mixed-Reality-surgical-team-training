@@ -1,8 +1,0 @@
-# This is the base file for Coordination Application
-# world config: ADF/world/world_stereo.yaml
-world config: ADF/world/world.yaml
-color config: ADF/color/colors.yaml
-input devices config: ADF/input_devices/input_devices.yaml
-multibody configs:
-  - "ADF/tool.yaml" #0
-  - "ADF/tool_2.yaml" #1

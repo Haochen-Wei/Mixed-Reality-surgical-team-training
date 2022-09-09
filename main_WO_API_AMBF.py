@@ -7,16 +7,15 @@ import time
 import native
 import Registeration
 import math
-
 from ambf_client import Client
 from PyKDL import Frame, Rotation, Vector
 
 #=====================================================================================================================================================
 #Initial Setup
 #Create a connection
-c = Client()
+c=Client()
 c.connect()
-obj1=c.get_obj_handle('/ambf/env/psm1/toolrolllink')
+obj1=c.get_obj_handle('/ambf/env/psm1/toolrolllink_000')
 obj2=c.get_obj_handle('/ambf/env/psm1/toolrolllink_001')
 obj3=c.get_obj_handle('/ambf/env/psm1/toolrolllink_002')
 obj4=c.get_obj_handle('/ambf/env/psm1/toolrolllink_003')
@@ -31,11 +30,9 @@ class Resolution :
     # width =  1280
     # height = 720
 
-
 #Open camera
 cap = cv2.VideoCapture("/dev/video2")
-end_cap=cv2.VideoCapture("/dev/video4")
-if cap.isOpened() == 0 or end_cap.isOpened()==0:
+if cap.isOpened() == 0:
     print("Can not open Desiginated camera")
     exit(-1)
 image_size = Resolution()
@@ -56,8 +53,6 @@ cap.set(cv2.CAP_PROP_FRAME_HEIGHT, image_size.height)
 calibration_file = "SN10028124.conf"
 #P1 for left camera, P2 for right camera
 P1, P2, map_left_x, map_left_y, map_right_x, map_right_y,K_left,dist_left = native.init_calibration(calibration_file, image_size)
-
-
 
 #=====================================================================================================================================================
 #Following block is used to registe all the equipments Modify this part to debug
@@ -125,7 +120,6 @@ for i in range(tool_count):
         if len(line_right_list)>100: #Limit the lenth of list to 100 to aviod memory explode
             line_right_list.pop(0)
 
-
 #================================================================================================================
 #This block is used to show the left and right points   
         #Show the line point
@@ -143,9 +137,7 @@ for i in range(tool_count):
                 cv2.circle(right_rect,(int(right_point[i][j]),i),1,(0,255,0))
         cv2.imshow("right_line",right_rect)
 #================================================================================================================
-        key = cv2.waitKey(5)
-    
-    
+        key = cv2.waitKey(5)    
     cv2.destroyAllWindows()
     fixed_left_list.append(Registeration.reg_2d(line_left_list))
     fixed_right_list.append(Registeration.reg_2d(line_right_list))
@@ -233,7 +225,6 @@ while key != 113:  # for 'q' key
                 zb=result_z[0][1]
                 a3dline.append([xk,xb,zk,zb,min(ys[:,0]),index_l[i]])
     
-
     #=======================================================================================================================
     # Update the position and pose of tool
     for i in range(len(a3dline)):
@@ -248,30 +239,31 @@ while key != 113:  # for 'q' key
 
         height=2*math.cos(math.atan(math.sqrt(a_xk*a_xk+a_yk*a_yk)))
 
-        x = a_xk * height + a_xb
-        y = a_yk * height + a_yb
+        x = -(a_xk * height + a_xb)/100+0.4
+        y = -(a_yk * height + a_yb)/100+3
 
         if a3dline[i][5]==0:
-            obj1.set_pos(x,y,height+a_min_z)
-            obj1.set_rpy(rx,ry,0)
+            #print(x,y,(height+a_min_z)/100)
+            obj1.set_pos(x,y,(height+a_min_z)/100+3.5)
+            obj1.set_rpy(math.radians(rx)+math.pi,math.radians(ry),0)
         
         if a3dline[i][5]==1:
-            obj2.set_pos(x,y,height+a_min_z)
-            obj2.set_rpy(rx,ry,0)
+            obj2.set_pos(x,y,(height+a_min_z)/100+3.5)
+            obj2.set_rpy(math.radians(rx)+math.pi,math.radians(ry),0)
 
         if a3dline[i][5]==2:
-            obj3.set_pos(x,y,height+a_min_z)
-            obj3.set_rpy(rx,ry,0)
+            obj3.set_pos(x,y,(height+a_min_z)/100+3.5)
+            obj3.set_rpy(math.radians(rx)+math.pi,math.radians(ry),0)
 
         if a3dline[i][5]==3:
-            obj4.set_pos(x,y,height+a_min_z)
-            obj4.set_rpy(rx,ry,0)
+            obj4.set_pos(x,y,(height+a_min_z)/100+3.5)
+            obj4.set_rpy(math.radians(rx)+math.pi,math.radians(ry),0)
 
     print("tool_count",len(a3dline))
     end=time.time()
     # Print the FPS
-    # if end-start!=0:
-    #     print('FPS is ',1/(end-start))
+    if end-start!=0:
+        print('FPS is ',1/(end-start))
     key = cv2.waitKey(5)
 
 #=====================================================================================================================================
@@ -281,33 +273,22 @@ cap.release()
 cv2.destroyAllWindows()
 c.clean_up()
 
-
-
-
-
-
-
 #unused in AMBF
-
 '''import board_detection as bd
 #Create board object for detection
 board,dictionary,detect_parameters=bd.generate_board()
 camera_matrix_end=np.array([[616.34,0,336.96],[0,615.32,244.17],[0,0,1]])
 distCoeffs_end=np.array([[-0.1288,0.1813,0,0,0]])'''
-
-
 '''#This block is used to aruco board detection
     ret,image_end=end_cap.read()
     success_end=0
     markerCorners_end, markerIds_end, _ = cv2.aruco.detectMarkers(image_end, dictionary, parameters=detect_parameters)
     if np.size(markerIds_end)>1:
         success_end,R_end,t_end=cv2.aruco.estimatePoseBoard(markerCorners_end, markerIds_end,board,camera_matrix_end,distCoeffs_end,None,None)
-
     success_main=0
     markerCorners_main, markerIds_main, _ = cv2.aruco.detectMarkers(left_right_image[0], dictionary, parameters=detect_parameters)
     if np.size(markerIds_main)>1:
-        success_main,R_main,t_main=cv2.aruco.estimatePoseBoard(markerCorners_main, markerIds_main,board,K_left,dist_left,None,None)
-        
+        success_main,R_main,t_main=cv2.aruco.estimatePoseBoard(markerCorners_main, markerIds_main,board,K_left,dist_left,None,None)        
         # if success_main!=0:
         #     image=left_right_image[0]
         #     cv2.aruco.drawDetectedMarkers(image, markerCorners_main)
@@ -317,7 +298,6 @@ distCoeffs_end=np.array([[-0.1288,0.1813,0,0,0]])'''
         #     cv2.aruco.drawDetectedMarkers(image_end, markerCorners_end)
         #     cv2.drawFrameAxes(image_end, camera_matrix_end, distCoeffs_end, R_end, t_end, 0.1)
         #     cv2.imshow('end', image_end)
-
     if success_main!=0 and success_end!=0:
         # Construct and invert the E_end
         rot_end,_=cv2.Rodrigues(R_end)
@@ -330,7 +310,6 @@ distCoeffs_end=np.array([[-0.1288,0.1813,0,0,0]])'''
         E=np.matmul(E_main,E_end)
     else:
         E=np.zeros(16)
-
     E=E.reshape(16)
     end_data=''
     for i in range(16):

@@ -8,7 +8,7 @@ from numba import jit
 @jit(nopython=True)
 def centerline(B):
     midpoint_list=[]
-    for i in range(int(B.shape[0]*0.85)):
+    for i in range(int(B.shape[0]*0.95)):
         start=[]
         end=[]
         flag=0
@@ -92,7 +92,7 @@ def get_line(img,mid_list,fixed_list):
             for n in range(len(fixed_list)):
                 fixed_point=fixed_list[n]
                 #print("diff",fixed_point[0]-tested[0]*fixed_point[1]-tested[1])
-                if abs(fixed_point[0]-tested[0]*fixed_point[1]-tested[1])<1000000: # Need to be fine tuned here
+                if abs(fixed_point[0]-tested[0]*fixed_point[1]-tested[1])<30: # Need to be fine tuned here
                     lines_index.append(n)
                     break
     return lines,lines_index

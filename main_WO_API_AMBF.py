@@ -15,10 +15,17 @@ from PyKDL import Frame, Rotation, Vector
 #Create a connection
 c=Client()
 c.connect()
-obj1=c.get_obj_handle('/ambf/env/psm1/toolrolllink_000')
-obj2=c.get_obj_handle('/ambf/env/psm1/toolrolllink_001')
-obj3=c.get_obj_handle('/ambf/env/psm1/toolrolllink_002')
-obj4=c.get_obj_handle('/ambf/env/psm1/toolrolllink_003')
+obj1=c.get_obj_handle('/ambf/env/handheld1')
+obj2=c.get_obj_handle('/ambf/env/handheld2')
+obj3=c.get_obj_handle('/ambf/env/handheld3')
+obj4=c.get_obj_handle('/ambf/env/handheld4')
+
+#initial position
+o1_p1,o1_p2,o1_p3=[100,100,100],[100,100,100],[100,100,100]
+o2_p1,o2_p2,o2_p3=[100,100,100],[100,100,100],[100,100,100]
+o3_p1,o3_p2,o3_p3=[100,100,100],[100,100,100],[100,100,100]
+o4_p1,o4_p2,o4_p3=[100,100,100],[100,100,100],[100,100,100]
+
 
 #Set resolution
 class Resolution :
@@ -96,8 +103,8 @@ for i in range(tool_count):
         max_r=np.amax(g_r)
         g_l=np.uint8(g_l*(255/max_l))
         g_r=np.uint8(g_r*(255/max_r))
-        [_,g_l]=cv2.threshold(g_l,15,255,cv2.THRESH_BINARY)
-        [_,g_r]=cv2.threshold(g_r,15,255,cv2.THRESH_BINARY)
+        [_,g_l]=cv2.threshold(g_l,25,255,cv2.THRESH_BINARY)
+        [_,g_r]=cv2.threshold(g_r,25,255,cv2.THRESH_BINARY)
 
         cv2.imshow("left_diff",g_l)
         cv2.imshow("right_diff",g_r)
@@ -172,8 +179,8 @@ while key != 113:  # for 'q' key
     max_r=np.amax(g_r)
     g_l=np.uint8(g_l*(255/max_l))
     g_r=np.uint8(g_r*(255/max_r))
-    [_,g_l]=cv2.threshold(g_l,15,255,cv2.THRESH_BINARY)
-    [_,g_r]=cv2.threshold(g_r,15,255,cv2.THRESH_BINARY)
+    [_,g_l]=cv2.threshold(g_l,25,255,cv2.THRESH_BINARY)
+    [_,g_r]=cv2.threshold(g_r,25,255,cv2.THRESH_BINARY)
 
     #left graph
     mid_list_l=filter.centerline(g_l)
@@ -233,37 +240,67 @@ while key != 113:  # for 'q' key
         a_yk=a3dline[i][2]
         a_yb=a3dline[i][3]
         a_min_z=a3dline[i][4]
-
+        print(a_xb,a_yb)
         ry=math.atan(a_xk)*(-180/math.pi)
         rx=math.atan(a_yk)*(180/math.pi)
 
-        height=2*math.cos(math.atan(math.sqrt(a_xk*a_xk+a_yk*a_yk)))
+        height=1.8*math.cos(math.atan(math.sqrt(a_xk*a_xk+a_yk*a_yk)))
 
-        x = -(a_xk * height + a_xb)/100+0.4
-        y = -(a_yk * height + a_yb)/100+3
+        x_tips=a_xb+a_xk*a_min_z
+        y_tips=a_yb+a_yk*a_min_z
 
+        x = -a_xk * height - x_tips/100+0.1
+        y = -a_yk * height- y_tips/100+3
+        z = height + a_min_z/100+3
+
+        rot1 = math.radians(rx)+math.pi
+        rot2 = math.radians(ry)
+        
         if a3dline[i][5]==0:
-            #print(x,y,(height+a_min_z)/100)
-            obj1.set_pos(x,y,(height+a_min_z)/100+3.5)
-            obj1.set_rpy(math.radians(rx)+math.pi,math.radians(ry),0)
+            obj1.set_pos(0.7*x+0.1*o1_p1[0]+0.1*o1_p2[0]+0.1*o1_p3[0],
+                0.7*y+0.1*o1_p1[1]+0.1*o1_p2[1]+0.1*o1_p3[1],
+                0.5*z+0.2*o1_p1[2]+0.2*o1_p2[2]+0.1*o1_p3[2])
+            obj1.set_rpy(rot1,rot2,0)
+
+            #Update history position
+            o1_p3=o1_p2
+            o1_p2=o1_p1
+            o1_p1=[x,y,z]
         
         if a3dline[i][5]==1:
-            obj2.set_pos(x,y,(height+a_min_z)/100+3.5)
-            obj2.set_rpy(math.radians(rx)+math.pi,math.radians(ry),0)
+            obj2.set_pos(0.7*x+0.1*o2_p1[0]+0.1*o2_p2[0]+0.1*o2_p3[0],
+                0.7*y+0.1*o2_p1[1]+0.1*o2_p2[1]+0.1*o2_p3[1],
+                0.5*z+0.2*o2_p1[2]+0.2*o2_p2[2]+0.1*o2_p3[2])
+            obj2.set_rpy(rot1,rot2,0)
+
+            #Update history data  
+            o2_p3=o2_p2
+            o2_p2=o2_p1
+            o2_p1=[x,y,z]
 
         if a3dline[i][5]==2:
-            obj3.set_pos(x,y,(height+a_min_z)/100+3.5)
-            obj3.set_rpy(math.radians(rx)+math.pi,math.radians(ry),0)
+            obj3.set_pos(x,y,z)
+            obj3.set_rpy(rot1,rot2,0)
+
+            #Update history data
+            o3_p3=o3_p2
+            o3_p2=o3_p1
+            o3_p1=[x,y,z]
 
         if a3dline[i][5]==3:
-            obj4.set_pos(x,y,(height+a_min_z)/100+3.5)
-            obj4.set_rpy(math.radians(rx)+math.pi,math.radians(ry),0)
+            obj4.set_pos(x,y,z)
+            obj4.set_rpy(rot1,rot2,0)
+            
+            #Update history data
+            o4_p3=o4_p2
+            o4_p2=o4_p1
+            o4_p1=[x,y,z]
 
-    print("tool_count",len(a3dline))
+    #print("tool_count",len(a3dline))
     end=time.time()
     # Print the FPS
-    if end-start!=0:
-        print('FPS is ',1/(end-start))
+    #if end-start!=0:
+        #print('FPS is ',1/(end-start))
     key = cv2.waitKey(5)
 
 #=====================================================================================================================================

@@ -8,7 +8,7 @@ from numba import jit
 @jit(nopython=True)
 def centerline(B):
     midpoint_list=[]
-    for i in range(int(B.shape[0]*0.85)):
+    for i in range(int(B.shape[0]*0.95)):
         start=[]
         end=[]
         flag=0

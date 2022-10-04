@@ -24,3 +24,20 @@ def generate_board():
     parameters = cv2.aruco.DetectorParameters_create()
 
     return board,dictionary,parameters
+
+
+def generate_marker(id,size):
+    #This function using preprovided DICT_6X6_250 dictionary to create a ArUco board. Board is suitable for printout in letter size paper. Please convert to pdf first to avoid any zooming.
+    dictionary = cv2.aruco.Dictionary_get(cv2.aruco.DICT_6X6_250)
+
+    #Generate the marker
+    marker = cv2.aruco.drawMarker(dictionary,id,size)
+    
+    #Uncomment following line to write the board file
+    cv2.imwrite("marker.png", marker)
+
+    return marker
+
+x=generate_marker(10,100)
+cv2.imshow("xx",x)
+cv2.waitKey()

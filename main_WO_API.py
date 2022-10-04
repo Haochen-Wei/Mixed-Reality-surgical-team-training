@@ -7,7 +7,7 @@ import time
 import zmq
 import native
 import Registeration
-import board_detection as bd
+import generate_marker as gb
 #=====================================================================================================================================================
 #Initial Setup
 #Create a ZMQ socket
@@ -27,7 +27,7 @@ class Resolution :
 
 
 #Open camera
-cap = cv2.VideoCapture(2,cv2.CAP_DSHOW)
+cap = cv2.VideoCapture(1,cv2.CAP_DSHOW)
 end_cap=cv2.VideoCapture(0,cv2.CAP_DSHOW)
 if cap.isOpened() == 0 or end_cap.isOpened()==0:
     print("Can not open Desiginated camera")
@@ -60,7 +60,7 @@ P1, P2, map_left_x, map_left_y, map_right_x, map_right_y,K_left,dist_left = nati
 
 
 #Create board object for detection
-board,dictionary,detect_parameters=bd.generate_board()
+board,dictionary,detect_parameters=gb.generate_board()
 camera_matrix_end=np.array([[616.34,0,336.96],[0,615.32,244.17],[0,0,1]])
 distCoeffs_end=np.array([[-0.1288,0.1813,0,0,0]])
 
@@ -147,12 +147,14 @@ for i in range(tool_count):
                 #cv2.circle(left_rect,(left_point[i][j][0],left_point[i][j][1]),1,(0,255,0))
                 cv2.circle(left_rect,(int(left_point[i][j]),i),1,(0,255,0))
         cv2.imshow("left_line",left_rect)
+        cv2.imwrite("L.jpg",left_rect)
         #Show the line point
         for i in range(len(right_point)):
             for j in range(len(right_point[i])):
                 #cv2.circle(right_rect,(right_point[i][j][0],right_point[i][j][1]),1,(0,255,0))
                 cv2.circle(right_rect,(int(right_point[i][j]),i),1,(0,255,0))
         cv2.imshow("right_line",right_rect)
+        cv2.imwrite("R.jpg",right_rect)
 #================================================================================================================
         key = cv2.waitKey(5)
     

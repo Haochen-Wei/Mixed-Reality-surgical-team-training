@@ -1,4 +1,5 @@
 #This function combined the ZED mini API with the centerline detection.
+import math
 import cv2
 import filter
 import recon_point as rp
@@ -9,22 +10,82 @@ import Registeration
 import math
 from ambf_client import Client
 from PyKDL import Frame, Rotation, Vector
+import json
+import csv
+from scipy.spatial.transform import Rotation as R
 
 #=====================================================================================================================================================
 #Initial Setup
 #Create a connection
 c=Client()
 c.connect()
-obj1=c.get_obj_handle('/ambf/env/handheld1')
-obj2=c.get_obj_handle('/ambf/env/handheld2')
-obj3=c.get_obj_handle('/ambf/env/handheld3')
-obj4=c.get_obj_handle('/ambf/env/handheld4')
+obj1=c.get_obj_handle('/ambf/env/handheld_l1')
+obj2=c.get_obj_handle('/ambf/env/handheld_l2')
+obj3=c.get_obj_handle('/ambf/env/handheld_l3')
+obj4=c.get_obj_handle('/ambf/env/handheld_l4')
+obj_target=c.get_obj_handle('/ambf/icl/PuzzleYellow') #Modified here
+obj_camera=c.get_obj_handle('/ambf/env/cameras/cameraR')
 
 #initial position
 o1_p1,o1_p2,o1_p3=[100,100,100],[100,100,100],[100,100,100]
 o2_p1,o2_p2,o2_p3=[100,100,100],[100,100,100],[100,100,100]
 o3_p1,o3_p2,o3_p3=[100,100,100],[100,100,100],[100,100,100]
 o4_p1,o4_p2,o4_p3=[100,100,100],[100,100,100],[100,100,100]
+
+#Set target object position
+f=open("position.json")
+dic=json.load(f)
+f.close()
+obj_target.set_pos(dic['x']/100,(dic['z']+15)/100-1.5,-dic['y']/100+0.9)
+time.sleep(0.1)
+obj_camera.set_pos(dic['x']/100+0.05,(dic['z']+15)/100-1.55,-dic['y']/100+1.5)
+time.sleep(0.1)
+obj_target.set_rpy(0,0,0)
+
+########################################################################################
+'''#Construct the main camera transform matrix~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+main_rotmat,_=cv2.Rodrigues(np.array([dic['r1'],dic['r2'],dic['r3']]))
+main_trans=np.array([[dic['x']],[dic['y']],[dic['z']]])
+
+E_main=np.hstack((main_rotmat,main_trans))
+E_main=np.vstack((E_main,np.array([[0.,0.,0.,1.]])))
+
+#Calculate the marker2 rotation~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+trans1,_=cv2.Rodrigues(np.array([-1.396,0,0]))
+trans2,_=cv2.Rodrigues(np.array([0,0,-1.57]))
+marker_rotmat=trans2@trans1
+E_marker=np.hstack((marker_rotmat,np.array([[0],[0],[0]])))
+E_marker=np.vstack((E_marker,np.array([[0.,0.,0.,1.]])))
+
+#Obtain camera object position~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+f=open("position_endoscope.json")
+dic=json.load(f)
+f.close()
+
+end_ang,_=cv2.Rodrigues(np.array([dic['r1'],dic['r2'],dic['r3']]))
+end_trans=np.array([[dic['x']],[dic['y']],[dic['z']]])
+
+#Construct the endoscope camera transform matrix inverse
+E_end=np.hstack((end_ang.T,np.matmul(-1*end_ang.T,end_trans)))
+E_end=np.vstack((E_end,np.array([[0.,0.,0.,1.]])))
+
+#Calculate the endoscope angular in OpenCV coordinate
+#E=E_end@
+E=E_marker@E_main#@E_end
+
+#Transfer to OpenGL coordinate
+end_rot_matx=E[0:3,0:3]
+print("CV2",end_rot_matx)
+
+trans3,_=cv2.Rodrigues(np.array([0,math.pi/2,0]))
+#trans4,_=cv2.Rodrigues(np.array([math.pi,0,0]))
+end_rot=trans3@end_rot_matx
+#Transfer to RPY.
+r=R.from_matrix(end_rot)
+rpy=r.as_euler('xyz', degrees=False)
+obj_camera.set_pos(E[0][3]/100,E[2][3]/100-1.5,-E[1][3]/100+1.9)
+obj_camera.set_rpy(rpy[0],rpy[1],rpy[2])'''
+########################################################################################
 
 
 #Set resolution
@@ -33,12 +94,8 @@ class Resolution :
     width =  672 
     height = 376 
     
-    # Desktop
-    # width =  1280
-    # height = 720
-
 #Open camera
-cap = cv2.VideoCapture("/dev/video2")
+cap = cv2.VideoCapture("/dev/video0")
 if cap.isOpened() == 0:
     print("Can not open Desiginated camera")
     exit(-1)
@@ -61,6 +118,12 @@ calibration_file = "SN10028124.conf"
 #P1 for left camera, P2 for right camera
 P1, P2, map_left_x, map_left_y, map_right_x, map_right_y,K_left,dist_left = native.init_calibration(calibration_file, image_size)
 
+#Create a csv file for data collection
+f_name=input("please input user number")
+f_name=str(f_name)
+csv_file=open(f_name+".csv","w")
+writer=csv.writer(csv_file)
+writer.writerow(["rx","ry","instrument_index","time_stamp"])
 #=====================================================================================================================================================
 #Following block is used to registe all the equipments Modify this part to debug
 #Define how many tools will be used first.
@@ -240,18 +303,22 @@ while key != 113:  # for 'q' key
         a_yk=a3dline[i][2]
         a_yb=a3dline[i][3]
         a_min_z=a3dline[i][4]
-        print(a_xb,a_yb)
-        ry=math.atan(a_xk)*(-180/math.pi)
-        rx=math.atan(a_yk)*(180/math.pi)
+
+        ry=math.atan(a_xk)*(180/math.pi)
+        rx=-math.atan(a_yk)*(180/math.pi)
 
         height=1.8*math.cos(math.atan(math.sqrt(a_xk*a_xk+a_yk*a_yk)))
 
         x_tips=a_xb+a_xk*a_min_z
         y_tips=a_yb+a_yk*a_min_z
-
-        x = -a_xk * height - x_tips/100+0.1
-        y = -a_yk * height- y_tips/100+3
-        z = height + a_min_z/100+3
+        
+        print(x_tips,y_tips)
+        
+        x = a_xk * height + x_tips/100
+        y = a_yk * height + y_tips/100
+        y=y-1.5
+        z = height + a_min_z/100
+        z=z+1
 
         rot1 = math.radians(rx)+math.pi
         rot2 = math.radians(ry)
@@ -296,6 +363,8 @@ while key != 113:  # for 'q' key
             o4_p2=o4_p1
             o4_p1=[x,y,z]
 
+        if key==32:
+            writer.writerow([rx,ry,a3dline[i][5],time.time()])
     #print("tool_count",len(a3dline))
     end=time.time()
     # Print the FPS
@@ -309,7 +378,7 @@ while key != 113:  # for 'q' key
 cap.release()
 cv2.destroyAllWindows()
 c.clean_up()
-
+csv_file.close()
 #unused in AMBF
 '''import board_detection as bd
 #Create board object for detection

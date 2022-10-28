@@ -38,6 +38,8 @@ def generate_marker(id,size):
 
     return marker
 
-x=generate_marker(10,100)
-cv2.imshow("xx",x)
+
+A=generate_marker(30,200)
+cv2.imshow("A",A)
 cv2.waitKey()
+cv2.imwrite("board.jpg",A)

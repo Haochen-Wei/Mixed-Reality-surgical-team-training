@@ -23,11 +23,11 @@ def centerline(B):
         mid=[]
         if len(start)==len(end):
             for n in range(len(start)):
-                if abs(start[n]-end[n])>3:
+                if abs(start[n]-end[n])>7: #4 #7 in 1280p
                     mid.append(int((start[n]+end[n])/2))
         else: 
             for n in range(len(start)-1):
-                if abs(start[n]-end[n])>3:
+                if abs(start[n]-end[n])>7: #4 #7 in 1280p
                     mid.append(int((start[n]+end[n])/2))
         midpoint_list.append(mid)
     return midpoint_list
@@ -54,13 +54,13 @@ def get_line(img,mid_list,fixed_list):
             #new_img[i][mid_list[i][j]-3]=255
 
     #Find the line using line detection:
-    lines_point=cv2.HoughLinesP(new_img,1,np.pi/180,100,80,50)#200,100,100
     rep_lines=[]
-    #Using matrix method to calculate the parameter of the line
-    for i in range(2):
+    for i in range(3):
+        lines_point=cv2.HoughLinesP(new_img,1,np.pi/180,200,160,100)
         if  lines_point is not None:
             break
-        lines_point=cv2.HoughLinesP(new_img,1,np.pi/180,100,80,50)
+        # lines_point=cv2.HoughLinesP(new_img,1,np.pi/180,200,160,100)#1280p
+        # lines_point=cv2.HoughLinesP(new_img,1,np.pi/180,100,80,50)
     
 
     #Coordinate here y axis in the image was independent variable and x axis is dependent variable
@@ -91,8 +91,8 @@ def get_line(img,mid_list,fixed_list):
             lines.append(tested)
             for n in range(len(fixed_list)):
                 fixed_point=fixed_list[n]
-                #print("diff",fixed_point[0]-tested[0]*fixed_point[1]-tested[1])
-                if abs(fixed_point[0]-tested[0]*fixed_point[1]-tested[1])<30: # Need to be fine tuned here
+                # print("diff",fixed_point[0]-tested[0]*fixed_point[1]-tested[1])
+                if abs(fixed_point[0]-tested[0]*fixed_point[1]-tested[1])<15: #10: #15 in 1280p
                     lines_index.append(n)
                     break
     return lines,lines_index
@@ -110,11 +110,34 @@ def classify_point(mid_list,lines):
         for i in range(len(mid_list)):
             middle_this_line=0
             for j in range(len(mid_list[i])):
-                if abs(mid_list[i][j]-(selected_line[0]*i+selected_line[1]))<4:
+                if abs(mid_list[i][j]-(selected_line[0]*i+selected_line[1]))<7: #4 #7 in 1280p
                     middle_this_line+=mid_list[i][j]   
             if middle_this_line!=0:
                 middle_this_line/len(mid_list[i])
                 point_for_this_line.append([middle_this_line,i])
+
+        #Add-on foward
+        cutoff=0
+        for fwd_iter in range(40): #20 #40 in 1280p
+            exam_index=point_for_this_line[fwd_iter][1]
+            next_index=point_for_this_line[fwd_iter+1][1]
+            if abs(exam_index-next_index)>6: #3 #6 in 1280p
+                cutoff=1+fwd_iter
+        if cutoff!=0:
+            point_for_this_line=point_for_this_line[cutoff:]
+        #Add-on ends
+        
+        #Add-on back
+        cutoff=0
+        for back_iter in range(30): #15 #30 in 1280p
+            exam_index=point_for_this_line[-back_iter-1][1]
+            prev_index=point_for_this_line[-back_iter-2][1]
+            if abs(exam_index-prev_index)>6: #3 #6 in 1280p
+                cutoff=-back_iter-2
+        if cutoff!=0:
+            point_for_this_line=point_for_this_line[:cutoff]
+        #Add-on ends
+
         filtered_point.append(point_for_this_line)
 
     return filtered_point

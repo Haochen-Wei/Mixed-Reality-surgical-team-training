@@ -385,6 +385,7 @@ cv2.destroyAllWindows()
 c.clean_up()
 csv_file.close()
 #unused in AMBF
+#Git test
 '''import board_detection as bd
 #Create board object for detection
 board,dictionary,detect_parameters=bd.generate_board()

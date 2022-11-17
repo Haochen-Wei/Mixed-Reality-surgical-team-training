@@ -9,7 +9,7 @@ import native
 import Registeration
 import math
 from ambf_client import Client
-from PyKDL import Frame, Rotation, Vector
+from PyKDL import Rotation
 import json
 import csv
 from scipy.spatial.transform import Rotation as R
@@ -95,19 +95,19 @@ class Resolution :
     height = 376 
     
 #Open camera
-cap = cv2.VideoCapture("/dev/video0")
+cap = cv2.VideoCapture("/dev/video2")
 if cap.isOpened() == 0:
     print("Can not open Desiginated camera")
     exit(-1)
 image_size = Resolution()
 
 #Laptop
-image_size.width = 672 
-image_size.height = 376
+# image_size.width = 672 
+# image_size.height = 376
 
 #Desktop
-# image_size.width = 1280
-# image_size.height = 720
+image_size.width = 1280
+image_size.height = 720
 
 #Set the video resolution to HD720 (VGA for laptop)
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, image_size.width*2)
@@ -123,7 +123,8 @@ f_name=input("please input user number")
 f_name=str(f_name)
 csv_file=open(f_name+".csv","w")
 writer=csv.writer(csv_file)
-writer.writerow(["rx","ry","instrument_index","time_stamp"])
+#writer.writerow(["rx","ry","instrument_index","time_stamp"])
+writer.writerow(["x","y","height","time_stamp"])
 #=====================================================================================================================================================
 #Following block is used to registe all the equipments Modify this part to debug
 #Define how many tools will be used first.
@@ -162,10 +163,10 @@ for i in range(tool_count):
         # Old binary method
         g_l=cv2.cvtColor(left_rect,cv2.COLOR_RGB2GRAY)
         g_r=cv2.cvtColor(right_rect,cv2.COLOR_RGB2GRAY)
-        max_l=np.amax(g_l)
-        max_r=np.amax(g_r)
-        g_l=np.uint8(g_l*(255/max_l))
-        g_r=np.uint8(g_r*(255/max_r))
+        # max_l=np.amax(g_l)
+        # max_r=np.amax(g_r)
+        # g_l=np.uint8(g_l*(255/max_l))
+        # g_r=np.uint8(g_r*(255/max_r))
         [_,g_l]=cv2.threshold(g_l,25,255,cv2.THRESH_BINARY)
         [_,g_r]=cv2.threshold(g_r,25,255,cv2.THRESH_BINARY)
 
@@ -216,12 +217,13 @@ for i in range(tool_count):
 # for i in range(len(fixed_left_list)):
 #     cv2.circle(left_rect,(int(fixed_left_list[i][0]),int(fixed_left_list[i][1])),5,(0,0,255),-1)
 # for j in range(len(fixed_right_list)):
-#     cv2.circle(right_rect,(int(fixed_right_list[i][0]),int(fixed_right_list[i][1])),5,(0,0,255),-1)
+#     cv2.circle(right_rect,(int(fixed_right_list[j][0]),int(fixed_right_list[i][1])),5,(0,0,255),-1)
 # cv2.imshow("left_line",left_rect)
 # cv2.imshow("right_line",right_rect)
+# print("left",fixed_left_list)
+# print("right",fixed_right_list)
 # cv2.waitKey()
 # cap.release()
-# end_cap.release()
 # exit(-1)
 
 #=====================================================================================================================================================
@@ -249,11 +251,13 @@ while key != 113:  # for 'q' key
     mid_list_l=filter.centerline(g_l)
     line_l,index_l=filter.get_line(g_l,mid_list_l,fixed_left_list)
     left_point=filter.classify_point(mid_list_l,line_l)
+    #print("left_point is",left_point)
 
     #right graph
     mid_list_r=filter.centerline(g_r)
     line_r,index_r=filter.get_line(g_r,mid_list_r,fixed_right_list)
     right_point=filter.classify_point(mid_list_r,line_r)
+    #print("right_point is",right_point)
 
 #================================================================================================================
 #This block is used to show the left and right filtered points   
@@ -308,9 +312,10 @@ while key != 113:  # for 'q' key
         rx=-math.atan(a_yk)*(180/math.pi)
 
         height=1.8*math.cos(math.atan(math.sqrt(a_xk*a_xk+a_yk*a_yk)))
+        height_tips=20*math.cos(math.atan(math.sqrt(a_xk*a_xk+a_yk*a_yk)))
 
-        x_tips=a_xb+a_xk*a_min_z
-        y_tips=a_yb+a_yk*a_min_z
+        x_tips=a_xb+a_xk*(a_min_z-height_tips)
+        y_tips=a_yb+a_yk*(a_min_z-height_tips)  
         
         print(x_tips,y_tips)
         
@@ -320,14 +325,13 @@ while key != 113:  # for 'q' key
         z = height + a_min_z/100
         z=z+1
 
-        rot1 = math.radians(rx)+math.pi
-        rot2 = math.radians(ry)
+        rot=Rotation.RPY(math.radians(rx)+math.pi,math.radians(ry),0).GetQuaternion()
         
         if a3dline[i][5]==0:
             obj1.set_pos(0.7*x+0.1*o1_p1[0]+0.1*o1_p2[0]+0.1*o1_p3[0],
                 0.7*y+0.1*o1_p1[1]+0.1*o1_p2[1]+0.1*o1_p3[1],
                 0.5*z+0.2*o1_p1[2]+0.2*o1_p2[2]+0.1*o1_p3[2])
-            obj1.set_rpy(rot1,rot2,0)
+            obj1.set_rot(rot)
 
             #Update history position
             o1_p3=o1_p2
@@ -338,7 +342,7 @@ while key != 113:  # for 'q' key
             obj2.set_pos(0.7*x+0.1*o2_p1[0]+0.1*o2_p2[0]+0.1*o2_p3[0],
                 0.7*y+0.1*o2_p1[1]+0.1*o2_p2[1]+0.1*o2_p3[1],
                 0.5*z+0.2*o2_p1[2]+0.2*o2_p2[2]+0.1*o2_p3[2])
-            obj2.set_rpy(rot1,rot2,0)
+            obj2.set_rot(rot)
 
             #Update history data  
             o2_p3=o2_p2
@@ -347,7 +351,7 @@ while key != 113:  # for 'q' key
 
         if a3dline[i][5]==2:
             obj3.set_pos(x,y,z)
-            obj3.set_rpy(rot1,rot2,0)
+            obj1.set_rot(rot)
 
             #Update history data
             o3_p3=o3_p2
@@ -356,20 +360,21 @@ while key != 113:  # for 'q' key
 
         if a3dline[i][5]==3:
             obj4.set_pos(x,y,z)
-            obj4.set_rpy(rot1,rot2,0)
+            obj1.set_rot(rot)
             
             #Update history data
             o4_p3=o4_p2
             o4_p2=o4_p1
             o4_p1=[x,y,z]
 
-        if key==32:
-            writer.writerow([rx,ry,a3dline[i][5],time.time()])
+        #if key==32:
+            # writer.writerow([rx,ry,a3dline[i][5],time.time()])
+        writer.writerow([x_tips,y_tips,a_min_z,time.time()])
     #print("tool_count",len(a3dline))
     end=time.time()
     # Print the FPS
-    #if end-start!=0:
-        #print('FPS is ',1/(end-start))
+    # if end-start!=0:
+    #     print('FPS is ',1/(end-start))
     key = cv2.waitKey(5)
 
 #=====================================================================================================================================

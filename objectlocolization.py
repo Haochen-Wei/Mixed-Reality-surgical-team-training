@@ -21,7 +21,7 @@ class Resolution :
     height = 720
     
 #Open camera
-cap = cv2.VideoCapture("/dev/video0")
+cap = cv2.VideoCapture("/dev/video2")
 if cap.isOpened() == 0:
     print("Can not open Desiginated camera")
     exit(-1)
